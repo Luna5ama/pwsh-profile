@@ -41,7 +41,8 @@ function global:__InvokeProfileModuleInitializer {
     }
 }
 
-__InvokeProfileModuleInitializer -Mode 'bootstrap' -Initializer ([pscustomobject]@{
+$profileModuleInitializers = [System.Collections.Generic.List[object]]::new()
+$profileModuleInitializers.Add([pscustomobject]@{
     Name = 'my-utils'
     Action = {
         Import-Module `
@@ -53,7 +54,6 @@ __InvokeProfileModuleInitializer -Mode 'bootstrap' -Initializer ([pscustomobject
     }
 })
 
-$profileModuleInitializers = [System.Collections.Generic.List[object]]::new()
 $vcpkgRoot = $global:PowerShellProfileConfig.VcpkgRoot
 if ($vcpkgRoot) {
     $poshVcpkg = Join-Path $vcpkgRoot 'scripts\posh-vcpkg'
