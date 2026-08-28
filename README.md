@@ -24,3 +24,17 @@ git add Modules/posh-git
 ```
 
 Machine-specific paths belong in `.local/config.psd1`, which Git ignores.
+
+## Compare module loading modes
+
+Set `AsyncModuleLoading` in `.local/config.psd1` and start a new session:
+
+```powershell
+@{
+    AsyncModuleLoading = $false # $true uses one module per OnIdle callback
+}
+```
+
+Both modes print the elapsed time and result for each module. Use `$false` to
+measure synchronous startup and `$true` to measure the normal asynchronous
+loading path.

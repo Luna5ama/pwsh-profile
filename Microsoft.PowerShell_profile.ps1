@@ -1,6 +1,4 @@
-# Render an immediately usable prompt, then import one integration per idle
-# callback.  Import-Module -Global makes the event handler's module changes
-# available to this interactive session.
+# Render an immediately usable prompt before loading integrations.
 function global:prompt {
     "PS $($executionContext.SessionState.Path.CurrentLocation)$('>' * ($nestedPromptLevel + 1)) "
 }
@@ -13,61 +11,125 @@ if ($global:__ProfileAsyncInitSubscriptionId) {
     Remove-Variable -Name __ProfileAsyncInitSubscriptionId -Scope Global -Force
 }
 
-Import-Module `
-    (Join-Path $PSScriptRoot 'Modules\my-utils\my-utils.psm1') `
-    -Global `
-    -Force `
-    -DisableNameChecking `
-    -ErrorAction Stop
+Remove-Variable -Name __ProfileModuleInitQueue -Scope Global -Force -ErrorAction SilentlyContinue
 
-[System.Collections.Queue]$global:__ProfileAsyncInitQueue = @(
-    {
-        $vcpkgRoot = $global:PowerShellProfileConfig.VcpkgRoot
-        if ($vcpkgRoot) {
-            $poshVcpkg = Join-Path $vcpkgRoot 'scripts\posh-vcpkg'
-            if (Test-Path -LiteralPath $poshVcpkg) {
-                Import-Module $poshVcpkg -Global -ErrorAction Stop
-            }
-        }
-    }
-    {
-        $poshGitManifest = Join-Path $PSScriptRoot 'Modules\posh-git\src\posh-git.psd1'
-        Import-Module `
-            $poshGitManifest `
-            -Global `
-            -Force `
-            -ArgumentList $true `
-            -ErrorAction Stop
-    }
-	{
-		Import-Module -Name Microsoft.WinGet.CommandNotFound -Global -ErrorAction Stop
-	}
-)
+$useAsyncModuleLoading = $global:PowerShellProfileConfig.AsyncModuleLoading -ne $false
 
-$profileAsyncInitSubscriber = Register-EngineEvent -SourceIdentifier PowerShell.OnIdle -SupportEvent -Action {
-    if ($global:__ProfileAsyncInitQueue.Count -gt 0) {
-        try {
-            & $global:__ProfileAsyncInitQueue.Dequeue()
-        }
-        catch {
-            $Host.UI.WriteErrorLine("Async profile initialization failed: $($_.Exception.Message)")
-        }
-    }
-    else {
-        Unregister-Event -SubscriptionId $EventSubscriber.SubscriptionId -Force
-        Remove-Variable -Name __ProfileAsyncInitQueue -Scope Global -Force
-        if ($global:__ProfileAsyncInitSubscriptionId -eq $EventSubscriber.SubscriptionId) {
-            Remove-Variable -Name __ProfileAsyncInitSubscriptionId -Scope Global -Force
-        }
+function global:__InvokeProfileModuleInitializer {
+    param(
+        [Parameter(Mandatory)] $Initializer,
+        [Parameter(Mandatory)] [string] $Mode
+    )
 
-        if ($global:GitPromptSettings) {
-            $GitPromptSettings.EnableFileStatus = $false
-            $GitPromptSettings.DefaultPromptAbbreviateHomeDirectory = $true
-            $GitPromptSettings.DefaultPromptPrefix.Text = 'PS $env:username@$(hostname) '
-            $GitPromptSettings.DefaultPromptPrefix.ForegroundColor = [ConsoleColor]::Green
-        }
+    $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+    $status = 'ok'
+    try {
+        $null = & $Initializer.Action
+    }
+    catch {
+        $status = 'failed'
+        $Host.UI.WriteErrorLine(
+            "Profile module initialization failed for $($Initializer.Name): $($_.Exception.Message)"
+        )
+    }
+    finally {
+        $stopwatch.Stop()
+        Write-Host `
+            ('[profile {0}] {1}: {2:N1} ms ({3})' -f `
+                $Mode, $Initializer.Name, $stopwatch.Elapsed.TotalMilliseconds, $status) `
+            -ForegroundColor DarkGray
     }
 }
 
-$global:__ProfileAsyncInitSubscriptionId = $profileAsyncInitSubscriber.SubscriptionId
-Remove-Variable -Name profileAsyncInitSubscriber -Force
+__InvokeProfileModuleInitializer -Mode 'bootstrap' -Initializer ([pscustomobject]@{
+    Name = 'my-utils'
+    Action = {
+        Import-Module `
+            (Join-Path $PSScriptRoot 'Modules\my-utils\my-utils.psm1') `
+            -Global `
+            -Force `
+            -DisableNameChecking `
+            -ErrorAction Stop
+    }
+})
+
+$profileModuleInitializers = [System.Collections.Generic.List[object]]::new()
+$vcpkgRoot = $global:PowerShellProfileConfig.VcpkgRoot
+if ($vcpkgRoot) {
+    $poshVcpkg = Join-Path $vcpkgRoot 'scripts\posh-vcpkg'
+    if (Test-Path -LiteralPath $poshVcpkg) {
+        $profileModuleInitializers.Add([pscustomobject]@{
+            Name = 'posh-vcpkg'
+            Action = {
+                Import-Module $poshVcpkg -Global -ErrorAction Stop
+            }.GetNewClosure()
+        })
+    }
+}
+
+$profileModuleInitializers.Add([pscustomobject]@{
+    Name = 'posh-git'
+    Action = {
+        $poshGitManifest = Join-Path $PSScriptRoot 'Modules\posh-git\src\posh-git.psd1'
+        if (-not (Get-Module -Name posh-git)) {
+            Import-Module `
+                $poshGitManifest `
+                -Global `
+                -ArgumentList $true `
+                -ErrorAction Stop
+        }
+
+        # Configure the prompt before control returns to PowerShell. Otherwise
+        # the first posh-git prompt runs with expensive file-status defaults.
+        $GitPromptSettings.EnableFileStatus = $false
+        $GitPromptSettings.DefaultPromptAbbreviateHomeDirectory = $true
+        $GitPromptSettings.DefaultPromptPrefix.Text = 'PS {0}@{1} ' -f `
+            [System.Environment]::UserName, `
+            [System.Environment]::MachineName
+        $GitPromptSettings.DefaultPromptPrefix.ForegroundColor = [ConsoleColor]::Green
+    }
+})
+
+$profileModuleInitializers.Add([pscustomobject]@{
+    Name = 'Microsoft.WinGet.CommandNotFound'
+    Action = {
+        $commandNotFoundManifest = Join-Path `
+            $PSScriptRoot `
+            'Modules\winget-command-not-found\src\bin\Release\net8.0\Microsoft.WinGet.CommandNotFound.psd1'
+        Import-Module $commandNotFoundManifest -Global -ErrorAction Stop
+    }
+})
+
+[System.Collections.Queue]$global:__ProfileModuleInitQueue = $profileModuleInitializers
+Remove-Variable -Name profileModuleInitializers, vcpkgRoot, poshVcpkg -Force -ErrorAction SilentlyContinue
+
+if ($useAsyncModuleLoading) {
+    $profileAsyncInitSubscriber = Register-EngineEvent -SourceIdentifier PowerShell.OnIdle -SupportEvent -Action {
+        if ($global:__ProfileModuleInitQueue.Count -gt 0) {
+            __InvokeProfileModuleInitializer `
+                -Initializer $global:__ProfileModuleInitQueue.Dequeue() `
+                -Mode 'async'
+        }
+        else {
+            $subscriptionId = $EventSubscriber.SubscriptionId
+            Unregister-Event -SubscriptionId $subscriptionId -Force
+            Remove-Variable -Name __ProfileModuleInitQueue -Scope Global -Force
+            Remove-Variable -Name __ProfileAsyncInitSubscriptionId -Scope Global -Force
+            Remove-Item Function:\__InvokeProfileModuleInitializer -Force
+        }
+    }
+
+    $global:__ProfileAsyncInitSubscriptionId = $profileAsyncInitSubscriber.SubscriptionId
+    Remove-Variable -Name profileAsyncInitSubscriber -Force
+}
+else {
+    while ($global:__ProfileModuleInitQueue.Count -gt 0) {
+        __InvokeProfileModuleInitializer `
+            -Initializer $global:__ProfileModuleInitQueue.Dequeue() `
+            -Mode 'sync'
+    }
+    Remove-Variable -Name __ProfileModuleInitQueue -Scope Global -Force
+    Remove-Item Function:\__InvokeProfileModuleInitializer -Force
+}
+
+Remove-Variable -Name useAsyncModuleLoading -Force
