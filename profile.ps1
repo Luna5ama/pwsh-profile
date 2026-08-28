@@ -32,17 +32,23 @@ function Setup-Conda {
    }
 }
 
-# Function to reload profile
 function Reload-Profile {
-   @(
-      $Profile.AllUsersAllHosts,
-      $Profile.AllUsersCurrentHost,
-      $Profile.CurrentUserAllHosts,
-      $Profile.CurrentUserCurrentHost
-   ) | % {
-      if(Test-Path $_){
-         Write-Verbose "Running $_"
-         . $_
-     }
+   [CmdletBinding()]
+   param()
+
+   $profilePaths = @(
+      $PROFILE.CurrentUserAllHosts
+      $PROFILE.CurrentUserCurrentHost
+   ) |
+      Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+      Select-Object -Unique
+
+   foreach ($profilePath in $profilePaths) {
+      if (-not (Test-Path -LiteralPath $profilePath)) {
+         continue
+      }
+
+      Write-Verbose "Reloading $profilePath"
+      . $profilePath
    }
 }
