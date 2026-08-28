@@ -1,0 +1,15 @@
+# Third-party modules are restored by bootstrap.ps1.
+/Modules/*
+!/Modules/my-utils/
+!/Modules/my-utils/**
+
+# Per-machine paths and private settings.
+/.local/
+*.local.ps1
+*.local.psd1
+
+# Common PowerShell/editor output.
+*.clixml
+*.log
+.vscode/
+/Scripts/InstalledScriptInfos/
