@@ -85,7 +85,7 @@ $profileModuleInitializers.Add([pscustomobject]@{
         $GitPromptSettings.DefaultPromptAbbreviateHomeDirectory = $true
         $GitPromptSettings.DefaultPromptPrefix.Text = 'PS {0}@{1} ' -f `
             [System.Environment]::UserName, `
-            [System.Environment]::MachineName
+            [System.Net.Dns]::GetHostName()
         $GitPromptSettings.DefaultPromptPrefix.ForegroundColor = [ConsoleColor]::Green
     }
 })
