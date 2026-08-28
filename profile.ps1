@@ -1,5 +1,5 @@
-$defaultsPath = Join-Path $PSScriptRoot 'config\defaults.psd1'
-$localPath = Join-Path $PSScriptRoot '.local\config.psd1'
+$defaultsPath = [IO.Path]::Combine($PSScriptRoot, 'config', 'defaults.psd1')
+$localPath = [IO.Path]::Combine($PSScriptRoot, '.local', 'config.psd1')
 
 $global:PowerShellProfileConfig = @{}
 
