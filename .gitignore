@@ -2,6 +2,7 @@
 /Modules/*
 !/Modules/my-utils/
 !/Modules/my-utils/**
+!/Modules/posh-git
 
 # Per-machine paths and private settings.
 /.local/

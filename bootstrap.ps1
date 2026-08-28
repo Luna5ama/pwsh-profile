@@ -6,7 +6,6 @@ param()
 $requiredModules = @(
     @{ Name = 'Microsoft.WinGet.Client'; Version = '1.9.2411' }
     @{ Name = 'Microsoft.WinGet.CommandNotFound'; Version = '1.0.4.0' }
-    @{ Name = 'posh-git'; Version = '1.1.0' }
     @{ Name = 'Pscx'; Version = '3.3.2' }
     @{ Name = 'PSProfiler'; Version = '1.0.5.0' }
     @{ Name = 'VSSetup'; Version = '2.2.16' }

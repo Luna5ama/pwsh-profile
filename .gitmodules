@@ -1,0 +1,4 @@
+[submodule "Modules/posh-git"]
+	path = Modules/posh-git
+	url = https://github.com/Luna5ama/posh-git.git
+	branch = master

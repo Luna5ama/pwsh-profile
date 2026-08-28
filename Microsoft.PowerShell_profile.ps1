@@ -31,7 +31,13 @@ Import-Module `
         }
     }
     {
-        Import-Module posh-git -Global -ArgumentList $true -ErrorAction Stop
+        $poshGitManifest = Join-Path $PSScriptRoot 'Modules\posh-git\src\posh-git.psd1'
+        Import-Module `
+            $poshGitManifest `
+            -Global `
+            -Force `
+            -ArgumentList $true `
+            -ErrorAction Stop
     }
 	{
 		Import-Module -Name Microsoft.WinGet.CommandNotFound -Global -ErrorAction Stop
