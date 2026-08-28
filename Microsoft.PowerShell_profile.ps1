@@ -48,7 +48,7 @@ $profileModuleInitializers.Add([pscustomobject]@{
     Name = 'my-utils'
     Action = {
         Import-Module `
-            (Join-Path $PSScriptRoot 'Modules\my-utils\my-utils.psm1') `
+            ([IO.Path]::Combine($PSScriptRoot, 'Modules', 'my-utils', 'my-utils.psm1')) `
             -Global `
             -Force `
             -DisableNameChecking `
@@ -58,8 +58,8 @@ $profileModuleInitializers.Add([pscustomobject]@{
 
 $vcpkgRoot = $global:PowerShellProfileConfig.VcpkgRoot
 if ($vcpkgRoot) {
-    $poshVcpkg = Join-Path $vcpkgRoot 'scripts\posh-vcpkg'
-    if (Test-Path -LiteralPath $poshVcpkg) {
+    $poshVcpkg = [IO.Path]::Combine($vcpkgRoot, 'scripts', 'posh-vcpkg')
+    if ([IO.Directory]::Exists($poshVcpkg)) {
         $profileModuleInitializers.Add([pscustomobject]@{
             Name = 'posh-vcpkg'
             Action = {
@@ -72,7 +72,9 @@ if ($vcpkgRoot) {
 $profileModuleInitializers.Add([pscustomobject]@{
     Name = 'posh-git'
     Action = {
-        $poshGitManifest = Join-Path $PSScriptRoot 'Modules\posh-git\src\posh-git.psd1'
+        $poshGitManifest = [IO.Path]::Combine(
+            $PSScriptRoot, 'Modules', 'posh-git', 'src', 'posh-git.psd1'
+        )
         if (-not (Get-Module -Name posh-git)) {
             Import-Module `
                 $poshGitManifest `
@@ -95,8 +97,9 @@ $profileModuleInitializers.Add([pscustomobject]@{
 $profileModuleInitializers.Add([pscustomobject]@{
     Name = 'Microsoft.WinGet.CommandNotFound'
     Action = {
-        $commandNotFoundBuildRoot = Join-Path `
-            $PSScriptRoot 'Modules\winget-command-not-found\src\bin\profile'
+        $commandNotFoundBuildRoot = [IO.Path]::Combine(
+            $PSScriptRoot, 'Modules', 'winget-command-not-found', 'src', 'bin', 'profile'
+        )
         $commandNotFoundBuildPaths = [IO.Directory]::GetDirectories(
             $commandNotFoundBuildRoot
         )
@@ -104,8 +107,9 @@ $profileModuleInitializers.Add([pscustomobject]@{
             $commandNotFoundBuildPaths,
             [StringComparer]::CurrentCultureIgnoreCase
         )
-        $commandNotFoundManifest = Join-Path `
-            $commandNotFoundBuildPaths[-1] 'Microsoft.WinGet.CommandNotFound.psd1'
+        $commandNotFoundManifest = [IO.Path]::Combine(
+            $commandNotFoundBuildPaths[-1], 'Microsoft.WinGet.CommandNotFound.psd1'
+        )
         Import-Module $commandNotFoundManifest -Global -ErrorAction Stop
     }
 })
