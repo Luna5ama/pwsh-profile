@@ -34,10 +34,12 @@ function global:__InvokeProfileModuleInitializer {
     }
     finally {
         $stopwatch.Stop()
-        Write-Host `
-            ('[profile {0}] {1}: {2:N1} ms ({3})' -f `
-                $Mode, $Initializer.Name, $stopwatch.Elapsed.TotalMilliseconds, $status) `
-            -ForegroundColor DarkGray
+        if ($global:PowerShellProfileConfig.ShowModuleLoadTiming) {
+            Write-Host `
+                ('[profile {0}] {1}: {2:N1} ms ({3})' -f `
+                    $Mode, $Initializer.Name, $stopwatch.Elapsed.TotalMilliseconds, $status) `
+                -ForegroundColor DarkGray
+        }
     }
 }
 

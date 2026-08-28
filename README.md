@@ -42,14 +42,16 @@ Machine-specific paths belong in `.local/config.psd1`, which Git ignores.
 
 ## Compare module loading modes
 
-Set `AsyncModuleLoading` in `.local/config.psd1` and start a new session:
+Set the module-loading switches in `.local/config.psd1` and start a new session:
 
 ```powershell
 @{
     AsyncModuleLoading = $false # $true uses one module per OnIdle callback
+    ShowModuleLoadTiming = $true # print elapsed time and result per module
 }
 ```
 
-Both modes print the elapsed time and result for each module. Use `$false` to
-measure synchronous startup and `$true` to measure the normal asynchronous
-loading path.
+Use `AsyncModuleLoading = $false` to measure synchronous startup and `$true`
+to measure the normal asynchronous loading path. Timing output is disabled by
+default; enable `ShowModuleLoadTiming` only while comparing the modes. Module
+initialization errors are still reported when timing output is disabled.
