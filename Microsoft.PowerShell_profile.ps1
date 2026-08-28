@@ -95,14 +95,15 @@ $profileModuleInitializers.Add([pscustomobject]@{
     Action = {
         $commandNotFoundBuildRoot = Join-Path `
             $PSScriptRoot 'Modules\winget-command-not-found\src\bin\profile'
-        $commandNotFoundBuild = Get-ChildItem `
-            -LiteralPath $commandNotFoundBuildRoot `
-            -Directory `
-            -ErrorAction Stop |
-            Sort-Object Name -Descending |
-            Select-Object -First 1
+        $commandNotFoundBuildPaths = [IO.Directory]::GetDirectories(
+            $commandNotFoundBuildRoot
+        )
+        [Array]::Sort(
+            $commandNotFoundBuildPaths,
+            [StringComparer]::CurrentCultureIgnoreCase
+        )
         $commandNotFoundManifest = Join-Path `
-            $commandNotFoundBuild.FullName 'Microsoft.WinGet.CommandNotFound.psd1'
+            $commandNotFoundBuildPaths[-1] 'Microsoft.WinGet.CommandNotFound.psd1'
         Import-Module $commandNotFoundManifest -Global -ErrorAction Stop
     }
 })
