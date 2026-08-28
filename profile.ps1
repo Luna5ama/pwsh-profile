@@ -4,11 +4,17 @@ $localPath = Join-Path $PSScriptRoot '.local\config.psd1'
 $global:PowerShellProfileConfig = @{}
 
 foreach ($configPath in @($defaultsPath, $localPath)) {
-   if (-not (Test-Path -LiteralPath $configPath)) {
+   if (-not [IO.File]::Exists($configPath)) {
       continue
    }
 
-   $config = Import-PowerShellDataFile -LiteralPath $configPath
+   $configScript = [scriptblock]::Create([IO.File]::ReadAllText($configPath))
+   $configScript.CheckRestrictedLanguage([string[]]@(), [string[]]@(), $false)
+   $config = & $configScript
+   if ($config -isnot [hashtable]) {
+      throw "Profile config '$configPath' must contain a hashtable."
+   }
+
    foreach ($key in $config.Keys) {
       $global:PowerShellProfileConfig[$key] = $config[$key]
    }
