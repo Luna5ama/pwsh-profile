@@ -4,8 +4,7 @@
 param()
 
 $requiredModules = @(
-    @{ Name = 'Microsoft.WinGet.Client'; Version = '1.9.2411' }
-    @{ Name = 'Microsoft.WinGet.CommandNotFound'; Version = '1.0.4.0' }
+    @{ Name = 'Microsoft.WinGet.Client'; Version = '1.11.460' }
     @{ Name = 'Pscx'; Version = '3.3.2' }
     @{ Name = 'PSProfiler'; Version = '1.0.5.0' }
     @{ Name = 'VSSetup'; Version = '2.2.16' }
@@ -30,6 +29,33 @@ foreach ($module in $requiredModules) {
         -AcceptLicense `
         -Confirm:$false
 }
+
+$commandNotFoundRoot = Join-Path $PSScriptRoot 'Modules\winget-command-not-found'
+$commandNotFoundProject = Join-Path $commandNotFoundRoot 'src\Microsoft.WinGet.CommandNotFound.csproj'
+$commandNotFoundInputs = Get-ChildItem `
+    -Path (Join-Path $commandNotFoundRoot 'src') `
+    -File |
+    Where-Object Extension -In '.cs', '.csproj', '.psd1', '.psm1' |
+    Sort-Object LastWriteTimeUtc -Descending
+$commandNotFoundBuildId = $commandNotFoundInputs[0].LastWriteTimeUtc.Ticks.ToString('x16')
+$commandNotFoundOutput = Join-Path $commandNotFoundRoot "src\bin\profile\$commandNotFoundBuildId"
+$commandNotFoundManifest = Join-Path $commandNotFoundOutput 'Microsoft.WinGet.CommandNotFound.psd1'
+
+if (-not (Test-Path -LiteralPath $commandNotFoundManifest)) {
+    & dotnet build `
+        $commandNotFoundProject `
+        -c Release `
+        -o $commandNotFoundOutput `
+        --nologo
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to build $commandNotFoundProject."
+    }
+}
+
+Remove-Variable `
+    -Name commandNotFoundRoot, commandNotFoundProject, commandNotFoundInputs, `
+        commandNotFoundBuildId, commandNotFoundOutput, commandNotFoundManifest `
+    -Force
 
 $localConfigPath = Join-Path $PSScriptRoot '.local\config.psd1'
 if (-not (Test-Path -LiteralPath $localConfigPath)) {

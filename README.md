@@ -12,7 +12,12 @@ Personal PowerShell profiles, scripts, and modules.
 
 Third-party gallery modules are deliberately not committed. `bootstrap.ps1`
 restores the tested versions. `Modules/my-utils` is tracked directly, and
-`Modules/posh-git` tracks the personal posh-git fork as a Git submodule.
+`Modules/posh-git` and `Modules/winget-command-not-found` track personal forks
+as Git submodules. The WinGet CommandNotFound fork defers its private WinGet
+client runspace initialization so importing the feedback provider does not block
+profile startup on that work. `bootstrap.ps1` builds it into a source-stamped
+directory so an existing PowerShell process can keep using its loaded DLL while
+a newer build is produced for new sessions.
 
 Update the fork checkout with:
 
@@ -21,6 +26,16 @@ git -C Modules/posh-git fetch origin master
 git -C Modules/posh-git switch master
 git -C Modules/posh-git merge --ff-only origin/master
 git add Modules/posh-git
+```
+
+Update the WinGet CommandNotFound fork the same way, using `main`:
+
+```powershell
+git -C Modules/winget-command-not-found fetch origin main
+git -C Modules/winget-command-not-found switch main
+git -C Modules/winget-command-not-found merge --ff-only origin/main
+git add Modules/winget-command-not-found
+./bootstrap.ps1
 ```
 
 Machine-specific paths belong in `.local/config.psd1`, which Git ignores.

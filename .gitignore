@@ -3,6 +3,7 @@
 !/Modules/my-utils/
 !/Modules/my-utils/**
 !/Modules/posh-git
+!/Modules/winget-command-not-found
 
 # Per-machine paths and private settings.
 /.local/

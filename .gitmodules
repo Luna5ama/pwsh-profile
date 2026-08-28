@@ -2,3 +2,7 @@
 	path = Modules/posh-git
 	url = https://github.com/Luna5ama/posh-git.git
 	branch = master
+[submodule "Modules/winget-command-not-found"]
+	path = Modules/winget-command-not-found
+	url = https://github.com/Luna5ama/winget-command-not-found.git
+	branch = main
