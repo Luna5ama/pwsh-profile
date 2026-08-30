@@ -15,3 +15,5 @@
 *.log
 .vscode/
 /Scripts/InstalledScriptInfos/
+
+.idea/
