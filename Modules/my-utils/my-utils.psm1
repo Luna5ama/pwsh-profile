@@ -83,6 +83,11 @@ function Switch-Worktree {
         throw 'The current directory is not inside a Git worktree.'
     }
 
+    $relativePath = git rev-parse --show-prefix
+    if ($LASTEXITCODE -ne 0) {
+        throw 'Failed to determine the current path relative to the Git worktree root.'
+    }
+
     $mainWorktree = Split-Path -Parent ([string]$commonGitDir).Trim()
     $target = if ([string]::IsNullOrWhiteSpace($Name)) {
         $mainWorktree
@@ -100,6 +105,13 @@ function Switch-Worktree {
 
     if ($target -notin $worktrees) {
         throw "Git worktree not found: $target"
+    }
+
+    if (-not [string]::IsNullOrEmpty($relativePath)) {
+        $target = Join-Path $target $relativePath
+    }
+    if (-not (Test-Path -LiteralPath $target -PathType Container)) {
+        throw "Directory not found in target worktree: $target"
     }
 
     Set-Location -LiteralPath $target
