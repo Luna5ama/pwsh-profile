@@ -85,7 +85,7 @@ $profileModuleInitializers.Add([pscustomobject]@{
 
         # Configure the prompt before control returns to PowerShell. Otherwise
         # the first posh-git prompt runs with expensive file-status defaults.
-        $GitPromptSettings.EnableFileStatus = $false
+        $GitPromptSettings.EnableFileStatus = $true
         $GitPromptSettings.DefaultPromptAbbreviateHomeDirectory = $true
         $GitPromptSettings.DefaultPromptPrefix.Text = 'PS {0}@{1} ' -f `
             [System.Environment]::UserName, `
